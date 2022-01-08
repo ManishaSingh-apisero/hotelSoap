@@ -60,6 +60,17 @@
 							<format>html</format>
 						</formats>
 					</coverage>
+					<cloudHubDeployment>
+						<uri>https://anypoint.mulesoft.com</uri>
+						<muleVersion>4.4.0</muleVersion>
+						<username>M@nisha1704</username>
+						<password>M@nisha170498</password>
+						<applicationName>BookHotel</applicationName>
+						<environment>Sandbox</environment>
+						<workers>1</workers>
+						<workerType>Micro</workerType>
+						<objectStoreV2>true</objectStoreV2>
+					</cloudHubDeployment>
 				</configuration>
 			</plugin>
 		</plugins>
