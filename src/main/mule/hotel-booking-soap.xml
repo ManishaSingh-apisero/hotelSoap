@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit-soap="http://www.mulesoft.org/schema/mule/apikit-soap" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/apikit-soap http://www.mulesoft.org/schema/mule/apikit-soap/current/mule-apikit-soap.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+    <http:listener-config name="api-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="8081"/>
+    </http:listener-config>
+    <apikit-soap:config httpStatusVarName="httpStatus" name="soapkit-config" port="HotelBookingSOAP" service="HotelBooking" wsdlLocation="Hotel.txt"/>
+    <http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="2114bed8-9d84-43b8-aa54-7669ec2e1f39" >
+		<http:request-connection host="anypoint.mulesoft.com" />
+	</http:request-config>
+	<wsc:config name="Web_Service_Consumer_Config" doc:name="Web Service Consumer Config" doc:id="fd878138-0707-4435-a99d-3d47933261bd" >
+		<wsc:connection wsdlLocation="api\Hotel.txt" service="HotelBooking" port="HotelBookingSOAP" address="http://localhost:8081/HotelBooking" />
+	</wsc:config>
+	<flow name="api-main">
+        <http:listener config-ref="api-httpListenerConfig" path="/HotelBooking/HotelBookingSOAP">
+            <http:response statusCode="#[attributes.additionalTransportData.statusCode default 200]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[attributes.protocolHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[attributes.additionalTransportData.statusCode default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[attributes.protocolHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit-soap:router config-ref="soapkit-config">
+            <apikit-soap:message>#[payload]</apikit-soap:message>
+            <apikit-soap:attributes>#[
+              %dw 2.0
+              output application/java
+              ---
+              {
+                  headers: attributes.headers,
+                  method: attributes.method,
+                  queryString: attributes.queryString
+            }]</apikit-soap:attributes>
+        </apikit-soap:router>
+    </flow>
+    <flow name="GET_Hotels:\soapkit-config">
+		<flow-ref doc:name="Flow Reference" doc:id="dcb2daef-702d-4497-97d9-7f849bfae930" name="getHotels"/>
+    </flow>
+    <flow name="GET_Booking:\soapkit-config">
+		<flow-ref doc:name="Flow Reference" doc:id="c6fd3847-4268-437a-a508-95800a06adb0" name="getBooking"/>
+    </flow>
+    <flow name="ADD_Booking:\soapkit-config">
+		<flow-ref doc:name="Flow Reference" doc:id="bb2a48ba-8024-4856-ae0c-613245d8ab10" name="addBoking"/>
+    </flow>
+    <flow name="DELETE_Booking:\soapkit-config">
+		<flow-ref doc:name="Flow Reference" doc:id="09e09213-370e-4d69-9da6-e739343affad" name="deleteBooking"/>
+    </flow>
+</mule>
