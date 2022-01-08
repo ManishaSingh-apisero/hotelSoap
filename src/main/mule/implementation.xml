@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<flow name="getHotels" doc:id="83728249-ace8-45e6-ba8a-cbfbab5b5367" >
+		<ee:transform doc:name="Transform Message" doc:id="f11ee6e7-5c71-4c31-b8fb-5a6136915723" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="a5f2aec2-c672-40ab-9909-5e686bb19efa" message="#[payload.body.GET_Hotels.City]"/>
+		<db:select doc:name="Select" doc:id="5a6f92f5-774d-4516-9d8e-490b11ac6eff" config-ref="Database_Config1">
+			<db:sql ><![CDATA[SELECT * FROM hotel_details WHERE location= :location]]></db:sql>
+			<db:input-parameters ><![CDATA[#[location: payload.body.GET_Hotels.City]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="ae99454c-37af-4d13-986d-ee57de5c50ce" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+---
+{
+	hotels: if(payload.location == null)
+	(Message: "No Hotels exist for this city")
+	else(
+	{
+		(payload map(obj,ind) ->{
+			hotel: {
+				hotel_id: obj.hotel_id,
+				hotel_name: obj.hotel_name,
+				room_type: obj.room_type,
+				rating: obj.rating,
+				breakfast: obj.breakfast,
+				cancellation_charges: obj.cancellation_charges,
+				price: obj.price
+			}
+		})
+	})
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="42eadcf0-8205-48b6-9cdf-b1dc8ccd6204" message="#[payload]"/>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="421896bd-631d-4a23-a174-7a35ef491913" type="DB:BAD_SQL_SYNTAX, DB:CONNECTIVITY, DB:QUERY_EXECUTION">
+				<ee:transform doc:name="Transform Message" doc:id="547d44e5-4978-4ada-8b72-d75ae57bfe8d" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": "database error!!"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+	<flow name="addBoking" doc:id="49c40b19-63a5-425c-acf7-e86efa1e8fde" >
+		<ee:transform doc:name="Transform Message" doc:id="f173bc61-6bdd-44f2-85ff-0cb17914d623" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="832964d0-ba7d-47a2-8094-50320d56513f" message="#[payload]"/>
+		<db:insert doc:name="Insert" doc:id="7cbe3dd5-c930-4cbf-9efb-76b4c61a454d" config-ref="Database_Config1">
+			<db:sql ><![CDATA[insert into hotel_booking (hotel_id, guest_name,age,gender,chech_in_date,chech_out_date,email,contact_number,no_of_guests) values (:hotel_id, :guest_name, :age, :gender, :chech_in_date, :chech_out_date, :email, :contact_number, :no_of_guests)]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	hotel_id: payload.body.ADD_Booking.Hotel_ID,
+	guest_name: payload.body.ADD_Booking.Guest_Name,
+	age: payload.body.ADD_Booking.Age,
+	gender: payload.body.ADD_Booking.Gender,
+	chech_in_date: payload.body.ADD_Booking.Check_In_Date,
+	chech_out_date: payload.body.ADD_Booking.Check_Out_Date,
+	email: payload.body.ADD_Booking.Email,
+	contact_number: payload.body.ADD_Booking.Contact_No,
+	no_of_guests: payload.body.ADD_Booking.No_Of_Guest
+}]]]></db:input-parameters>
+		</db:insert>
+		<ee:transform doc:name="Transform Message" doc:id="bf31eca9-9ee4-4565-a1de-3585034d27d0" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+---
+{
+	"message": "Congratulations! your booking is done"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="c6d401ed-2b4f-4114-85ca-96196189bb61" message="#[payload]"/>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="886eb594-d19c-40ec-84ed-ef8c8859c11d" type="DB:BAD_SQL_SYNTAX, DB:CONNECTIVITY, DB:QUERY_EXECUTION, DB:RETRY_EXHAUSTED">
+				<ee:transform doc:name="Transform Message" doc:id="28d3136a-d209-4620-8027-61a181e83c39" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": "database error!!"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+	<flow name="getBooking" doc:id="b55e1ff8-bec6-4b9d-ac7c-2044bb48caa1" >
+		<ee:transform doc:name="Transform Message" doc:id="86f22aae-cd99-465c-8b14-59f2f69a89d7" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="7e9c7ee6-9012-4f01-a047-ef47937b6edc" message="#[payload]"/>
+		<db:select doc:name="Select" doc:id="8cd306d2-17d5-4ef7-bd47-a28fbbbefcac" config-ref="Database_Config1">
+			<db:sql ><![CDATA[select * from hotel_booking where hotel_id= :hotel_id]]></db:sql>
+			<db:input-parameters ><![CDATA[#[hotel_id: payload.body.GET_Booking.Hotel_ID]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="e365fd9e-afc2-4089-a82f-a7fa443b7657" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+---
+{
+	bookings: if(payload.hotel_id== null )
+	(Message: "No Booking available for this ID")
+	else(
+	{
+		(payload map(obj,ind) -> {
+			booking:{
+				hotel_id: obj.hotel_id,
+				guest_name: obj.guest_name,
+				age: obj.age,
+				gender: obj.gender,
+				check_in_date: obj.chech_in_date,
+				check_out_date: obj.chech_out_date,
+                email: obj.email,
+                contact_number: obj.contact_number,
+                no_of_guests: obj.no_of_guests
+			}
+		})
+	})
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="2bb93463-e4c9-44be-ac9c-4299d16489be" message="#[payload]"/>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="2e97dd88-5bf5-498f-8ae4-24a1603cabe7" type="DB:BAD_SQL_SYNTAX, DB:CONNECTIVITY, DB:QUERY_EXECUTION">
+				<ee:transform doc:name="Transform Message" doc:id="1c95743d-4cc6-458e-9346-bd4fc0620730" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": "database error!!"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+	<flow name="deleteBooking" doc:id="5dab9846-9191-4d74-beed-8682de29f739" >
+		<ee:transform doc:name="Transform Message" doc:id="d34049db-1a21-4b32-85e0-38658683e80b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="6ec44b99-377e-4a21-bef8-3da5ad056a84" message="#[payload]"/>
+		<db:delete doc:name="Delete" doc:id="c079cd35-40af-413c-9bb6-595ae1b323f2" config-ref="Database_Config1">
+			<db:sql ><![CDATA[delete from hotel_booking where hotel_id= :hotel_id]]></db:sql>
+			<db:input-parameters ><![CDATA[#[hotel_id: payload.body.DELETE_Booking.Hotel_ID]]]></db:input-parameters>
+		</db:delete>
+		<ee:transform doc:name="Transform Message" doc:id="ff122c74-5f16-4c6f-b5c6-373733d76e63" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+---
+{
+	"message": "Your booking is deleted!!"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="876db575-10a3-4239-af8a-2cee0de1094a" />
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="b8f8c27a-40a4-4a80-802f-1be5e64a3d26" type="DB:BAD_SQL_SYNTAX, DB:CONNECTIVITY, DB:QUERY_EXECUTION, DB:RETRY_EXHAUSTED">
+				<ee:transform doc:name="Transform Message" doc:id="c2446feb-470a-4dbb-8362-863c085be719" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": "database error!!"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+</mule>

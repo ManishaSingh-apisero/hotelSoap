@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_49c40b19_63a5_425c_acf7_e86efa1e8fde_Input_Attributes = {| protocolHeaders?: {|  |} |}
+
